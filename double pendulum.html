@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Double Pendulum</title>
+
+    <style>
+        html,
+        body {
+            height: 100%;
+        }
+        
+        canvas {
+            border: 1px solid black;
+        }
+        
+        #canvas2 {
+            position: absolute;
+            left: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="canvas" width="600px" height="600px"></canvas>
+    <canvas id="canvas2" width="600px" height="600px"></canvas>
+
+    <script>
+        var canvas = document.getElementById("canvas");
+        var ctx = canvas.getContext("2d");
+
+        var canvas2 = document.createElement("canvas");
+        canvas2.width = 600;
+        canvas2.height = 600;
+        var ctx2 = canvas2.getContext("2d");
+        ctx2.shadowColor = "yellow";
+    </script>
+
+    <script>
+        // environment variables
+        let center = [300, 300];
+        let g = 0.1962;
+        let loss = 0.999;
+        let first = false;
+
+        // pendulums
+        let r1 = 100;
+        let m1 = 40;
+        let a1 = Math.PI / 4;
+        let a1_v = 0;
+        let a1_a = 0;
+
+        let r2 = 100;
+        let m2 = 40;
+        let a2 = Math.PI / 2;
+        let a2_v = 0;
+        let a2_a = 0;
+
+        let p1 = [0, 0];
+        let p2 = [0, 0];
+        let pp2 = [-1, -1];
+
+        function caclPosition() {
+            p1[0] = r1 * Math.sin(a1) + center[0];
+            p1[1] = r1 * Math.cos(a1) + center[1];
+
+            p2[0] = p1[0] + r2 * Math.sin(a2);
+            p2[1] = p1[1] + r2 * Math.cos(a2);
+
+        }
+
+        function move() {
+            // p1
+            let num1 = -g * (2 * m1 + m2) * Math.sin(a1);
+            let num2 = -m2 * g * Math.sin(a1 - 2 * a2);
+            let num3 = -2 * Math.sin(a1 - a2) * m2;
+            let num4 = a2_v * a2_v * r2 + a1_v * a1_v * r1 * Math.cos(a1 - a2);
+            let den = r1 * (2 * m1 + m2 - m2 * Math.cos(2 * a1 - 2 * a2));
+
+            a1_a = (num1 + num2 + num3 * num4) / den;
+
+            // p2
+            num1 = 2 * Math.sin(a1 - a2);
+            num2 = (a1_v * a1_v * r1 * (m1 + m2));
+            num3 = g * (m1 + m2) + Math.cos(a1);
+            num4 = a2_v * a2_v * r2 * m2 * Math.cos(a1 - a2);
+            den = r2 * (2 * m1 + m2 - m2 * Math.cos(2 * a1 - 2 * a2));
+
+            a2_a = (num1 * (num2 + num3 + num4)) / den;
+
+            a1 += a1_v;
+            a2 += a2_v;
+            a1_v += a1_a;
+            a2_v += a2_a;
+
+            a1_v *= loss;
+            a2_v *= loss;
+        }
+    </script>
+
+    <script>
+        function Update() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            caclPosition();
+            move();
+            draw();
+
+            window.requestAnimationFrame(Update);
+        }
+
+        function draw() {
+            ctx.drawImage(canvas2, 0, 0);
+
+            // draw trail
+            if (pp2[0] != -1 && pp2[1] != -1) {
+                ctx2.beginPath();
+                ctx2.moveTo(pp2[0], pp2[1]);
+                ctx2.lineTo(p2[0], p2[1]);
+                ctx2.closePath();
+                ctx2.stroke();
+            }
+
+            pp2[0] = p2[0];
+            pp2[1] = p2[1];
+
+            ctx2.fillStyle = "rgba(255, 255, 255, 0.03)";
+            ctx2.fillRect(0, 0, canvas.width, canvas.height);
+
+            // origin dot
+            drawDot(center[0], center[1], 5);
+
+            ctx.beginPath();
+            ctx.moveTo(center[0], center[1]);
+
+            // circle 1
+            ctx.lineTo(p1[0], p1[1]);
+            drawCircle(p1[0], p1[1], 10);
+
+            ctx.moveTo(p1[0], p1[1]);
+
+            // circle 2
+            ctx.lineTo(p2[0], p2[1]);
+            drawCircle(p2[0], p2[1], 10);
+
+            ctx.closePath();
+            ctx.stroke();
+
+            ctx.fillText(new Date().toLocaleString(), 10, 10);
+            ctx.fillText('θ1: ' + a1, 10, 20);
+            ctx.fillText('θ2: ' + a2, 10, 30);
+            ctx.fillText('θ1_v: ' + a1_v, 10, 40);
+            ctx.fillText('θ2_v: ' + a2_v, 10, 50);
+            ctx.fillText('θ1_a: ' + a1_a, 10, 60);
+            ctx.fillText('θ2_a: ' + a2_a, 10, 70);
+            ctx.fillText('g: ' + g, 10, 80);
+            ctx.fillText('loss: ' + loss, 10, 90);
+        }
+
+        function drawDot(x, y, size) {
+            ctx.fillRect(x - size / 2, y - size / 2, size, size);
+        }
+
+        function drawCircle(x, y, r) {
+            ctx.moveTo(x + r, y);
+            ctx.arc(x, y, r, 0, Math.PI * 2, true);
+        }
+
+        Update();
+    </script>
+</body>
+
+</html>
